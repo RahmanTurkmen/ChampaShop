@@ -1,0 +1,14 @@
+diff --git a/node_modules/vite-plugin-checker/dist/main.js b/node_modules/vite-plugin-checker/dist/main.js
+index 7586379..158e083 100644
+--- a/node_modules/vite-plugin-checker/dist/main.js
++++ b/node_modules/vite-plugin-checker/dist/main.js
+@@ -151,7 +151,8 @@ function spawnChecker(checker, userConfig, localEnv) {
+ 	return new Promise((resolve) => {
+ 		const buildBin = checker.build.buildBin;
+ 		const [command, args] = typeof buildBin === "function" ? buildBin(userConfig) : buildBin;
+-		spawn([command, ...args].join(" "), {
++		const quote = (part) => part.includes(" ") ? `"${part}"` : part;
++		spawn([command, ...args].map(quote).join(" "), {
+ 			cwd: process.cwd(),
+ 			stdio: "inherit",
+ 			env: localEnv,
