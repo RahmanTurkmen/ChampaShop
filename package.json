@@ -3,15 +3,17 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "lint": "eslint .",
-    "typecheck": "nuxi typecheck",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "build": "nuxi build",
     "dev": "nuxt dev",
+    "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "patch-package && nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@pinia/nuxt": "^1.0.2",
@@ -26,6 +28,7 @@
     "@vue/test-utils": "^2.5.1",
     "eslint-typegen": "^2.3.1",
     "happy-dom": "^20.14.5",
+    "patch-package": "^8.0.1",
     "prettier": "^3.9.9",
     "vitest": "^5.0.1",
     "vue-tsc": "^3.3.11"
