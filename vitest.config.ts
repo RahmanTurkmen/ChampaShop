@@ -16,6 +16,13 @@ export default defineConfig({
       provider: 'v8',
       include: ['app/utils/**/*.ts'],
       reporter: ['text', 'html'],
+      // La CI échoue si la couverture du moteur de promotions passe sous 90 %.
+      thresholds: {
+        'app/utils/promotions.ts': {
+          lines: 90,
+          branches: 90,
+        },
+      },
     },
   },
 })
