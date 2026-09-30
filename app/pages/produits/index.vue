@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { PAGE_SIZE, parseCatalogQuery, toRouteQuery, type CatalogQuery } from '~/utils/catalog'
+import {
+  PAGE_SIZE,
+  clampPage,
+  parseCatalogQuery,
+  toRouteQuery,
+  type CatalogQuery,
+} from '~/utils/catalog'
 
 const route = useRoute()
 const api = useProductsApi()
@@ -46,6 +52,22 @@ async function updateUrl(patch: Partial<CatalogQuery>, replace = false): Promise
 function linkFor(page: number): { path: string; query: Record<string, string> } {
   return { path: '/produits', query: toRouteQuery({ ...state.value, page }) }
 }
+
+/**
+ * Page hors limites (?page=999 alors qu'il n'y a que 3 pages) : on redirige vers la dernière
+ * page valide plutôt que d'afficher « Aucun produit ». `replace` évite de garder l'URL invalide
+ * dans l'historique.
+ */
+async function redirectIfPageOutOfRange(): Promise<void> {
+  if (!catalog.value) return
+  const validPage = clampPage(state.value.page, catalog.value.pageCount)
+  if (validPage !== state.value.page) {
+    await navigateTo(linkFor(validPage), { replace: true })
+  }
+}
+
+await redirectIfPageOutOfRange()
+watch(catalog, redirectIfPageOutOfRange)
 
 const resultLabel = computed<string>(() => {
   const total = catalog.value?.total ?? 0

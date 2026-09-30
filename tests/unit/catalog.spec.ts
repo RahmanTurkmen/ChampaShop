@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_CATALOG_QUERY,
+  clampPage,
   filterProducts,
   needsLocalFiltering,
   pageCount,
@@ -108,6 +109,13 @@ describe('filtres, tri et pagination', () => {
     expect(paginate(items, 3)).toEqual([25, 26, 27, 28, 29, 30])
     expect(pageCount(30)).toBe(3)
     expect(pageCount(0)).toBe(1)
+  })
+
+  it('ramène une page hors limites sur une page valide', () => {
+    expect(clampPage(999, 3)).toBe(3)
+    expect(clampPage(2, 3)).toBe(2)
+    expect(clampPage(0, 3)).toBe(1)
+    expect(clampPage(5, 0)).toBe(1)
   })
 
   it('affiche des ellipses dans la pagination', () => {

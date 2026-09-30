@@ -147,6 +147,11 @@ export function pageCount(total: number, pageSize = PAGE_SIZE): number {
   return Math.max(1, Math.ceil(total / pageSize))
 }
 
+/** Ramène une page hors limites (lien partagé obsolète, URL modifiée à la main) dans [1, pageCount] */
+export function clampPage(page: number, totalPages: number): number {
+  return Math.min(Math.max(1, page), Math.max(1, totalPages))
+}
+
 export function paginate<T>(items: T[], page: number, pageSize = PAGE_SIZE): T[] {
   const start = (page - 1) * pageSize
   return items.slice(start, start + pageSize)
