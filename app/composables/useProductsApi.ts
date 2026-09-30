@@ -76,12 +76,17 @@ export function useProductsApi(): ProductsApi {
 
     // Filtre prix (ou recherche + catégorie) : un seul appel avec limit=0 et champs réduits,
     // puis filtre, tri et pagination côté Nuxt (rendu serveur).
+    // limit=0 renvoie bien tous les produits sur les trois routes (/products, /products/search
+    // et /products/category/:slug) : vérifié sur DummyJSON, limit et skip y sont respectés.
     const response = await get<ProductsResponse<ProductSummary>>(
       endpoint.path,
       { ...endpoint.query, limit: 0, select },
       signal,
     )
     const filtered = filterProducts(response.products, {
+      // Sans recherche, la catégorie a déjà été filtrée par l'API (/products/category/:slug) :
+      // inutile de refiltrer. Avec une recherche, l'API passe par /products/search, qui ignore
+      // la catégorie : on la filtre donc ici.
       category: state.q ? state.category : '',
       minPrice: state.minPrice,
       maxPrice: state.maxPrice,
