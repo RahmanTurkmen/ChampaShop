@@ -23,6 +23,8 @@ export default defineNuxtConfig({
     public: {
       // URL de l'API DummyJSON (surchargée par NUXT_PUBLIC_API_BASE)
       apiBase: 'https://dummyjson.com',
+      // URL publique du site, utilisée pour le sitemap et les balises Open Graph
+      siteUrl: 'http://localhost:3000',
     },
   },
 

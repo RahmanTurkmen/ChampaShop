@@ -1,2 +1,5 @@
-User-Agent: *
-Disallow:
+User-agent: *
+Disallow: /panier
+Disallow: /compte
+Disallow: /connexion
+
