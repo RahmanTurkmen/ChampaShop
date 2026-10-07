@@ -76,6 +76,11 @@ export const useCartStore = defineStore('cart', (): CartStore => {
 
   function saveLines(next: CookieCartLine[]): void {
     cookie.value = next
+    // Panier devenu vide (article par article ou via « Vider ») : on oublie aussi le code promo,
+    // sinon il se réappliquerait en silence au prochain ajout.
+    if (next.length === 0) {
+      promoCode.value = ''
+    }
   }
 
   function quantityOf(productId: number): number {
