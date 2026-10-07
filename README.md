@@ -9,12 +9,13 @@ Vitrine en ligne de la boutique fictive **ChampaShop**, construite avec Nuxt 4, 
 
 1. [Installation](#installation)
 2. [Scripts](#scripts)
-3. [Fonctionnalités](#fonctionnalités)
-4. [Architecture](#architecture)
-5. [Choix techniques](#choix-techniques)
-6. [Conventions Git](#conventions-git)
-7. [Répartition des rôles](#répartition-des-rôles)
-8. [Usage de l'IA](#usage-de-lia)
+3. [Déploiement](#déploiement)
+4. [Fonctionnalités](#fonctionnalités)
+5. [Architecture](#architecture)
+6. [Choix techniques](#choix-techniques)
+7. [Conventions Git](#conventions-git)
+8. [Répartition des rôles](#répartition-des-rôles)
+9. [Usage de l'IA](#usage-de-lia)
 
 ## Installation
 
@@ -50,6 +51,14 @@ Variables d'environnement facultatives (fichier `.env`, jamais commité) :
 | `npm run test:coverage` | Tests + couverture (échec si < 90 % sur `utils/promotions.ts`) |
 
 La CI GitHub Actions (`.github/workflows/ci.yml`) lance `install → lint → typecheck → test:coverage → build` sur chaque Pull Request.
+
+## Déploiement
+
+Le site est hébergé sur **Vercel**, relié au dépôt GitHub :
+
+- **Production** : chaque merge dans `main` (donc à chaque release) met à jour https://champashop.vercel.app.
+- **Previews** : chaque branche poussée obtient son propre déploiement. Le bot Vercel poste le lien en commentaire de la PR, ce qui permet de tester une fonctionnalité pendant la review. Ces previews sont protégées : il faut être connecté avec un compte Vercel membre du projet.
+- **Variables d'environnement** : à définir dans les réglages du projet Vercel (mêmes noms que dans le tableau [Installation](#installation)). `NUXT_PUBLIC_SITE_URL` doit valoir l'URL de production, sinon le sitemap et les balises Open Graph pointent vers `http://localhost:3000`.
 
 ## Fonctionnalités
 
@@ -107,7 +116,15 @@ DummyJSON ne sait pas filtrer par prix, ni combiner recherche **et** catégorie.
 Justification :
 
 - **Appels** : toujours un seul appel par affichage. Paginer côté API puis filtrer donnerait des pages incomplètes (3 produits au lieu de 12) et un total faux.
-- **Performance** : le catalogue compte environ 200 produits. Avec `select`, la réponse complète pèse quelques dizaines de Ko, et le filtrage de 200 éléments est instantané. Si le catalogue devenait très gros, il faudrait un filtre côté serveur (API ou route Nitro avec cache).
+- **Performance** : le catalogue compte 194 produits. Mesures sur DummyJSON (réponses compressées en gzip, 07/10/2026) :
+
+  | Appel | Taille |
+  | --- | --- |
+  | Page normale : 12 produits avec `select` | 0,7 Ko |
+  | Filtre prix : 194 produits avec `select` | 7,2 Ko |
+  | 194 produits sans `select` (non retenu) | 46,3 Ko |
+
+  Le mode « local » transfère donc environ 10 fois plus qu'une page normale, mais reste très léger grâce à `select` (6 fois moins que sans), et le filtrage de 194 éléments est instantané. Si le catalogue devenait très gros, il faudrait un filtre côté serveur (API ou route Nitro avec cache).
 - **Pagination** : elle est calculée après le filtre, donc le nombre de pages et le total sont exacts.
 
 ### Panier en cookie (F3)
@@ -139,14 +156,32 @@ Nous suivons **GitFlow** :
 
 | Branche | Créée depuis | Mergée dans | Règle |
 | --- | --- | --- | --- |
-| `main` | — | — | Production, protégée. Merge uniquement depuis `release/*` ou `hotfix/*` |
-| `develop` | `main` | — | Intégration, protégée. Merge par PR approuvée |
+| `main` | — | — | Production. Merge uniquement depuis `release/*` ou `hotfix/*` |
+| `develop` | `main` | — | Intégration. Merge uniquement par PR approuvée |
 | `feature/<n°>-<desc>` | `develop` | `develop` | Une issue = une branche = une PR |
 | `release/vX.Y.Z` | `develop` | `main` + `develop` | Gel des fonctionnalités, tag annoté sur `main` |
 | `hotfix/<desc>` | `main` | `main` + `develop` | Correction urgente, incrémente le patch |
 
 - **Commits** : [Conventional Commits](https://www.conventionalcommits.org/fr/) : `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
 - **Pull Requests** : template rempli, `Closes #<n°>`, CI verte, au moins une review argumentée d'un coéquipier, merge en « Create a merge commit » (`--no-ff`), branche supprimée après merge.
+- **Protection** : `main` et `develop` sont marquées comme protégées sur GitHub. Jamais de push direct ni de force-push : tout passe par une PR. La CI n'est pas encore une vérification obligatoire côté GitHub, c'est donc au relecteur de vérifier qu'elle est verte avant de merger.
+
+**Démarrer une fonctionnalité :**
+
+```bash
+git checkout develop
+git pull
+git checkout -b feature/<n°>-<desc>
+# ... code, puis vérifications locales :
+npm run lint && npm run typecheck && npm run test && npm run build
+git status                  # vérifier ce qui a changé
+git add <fichiers modifiés> # jamais git add . à l'aveugle
+git commit -m "feat: ..."
+git push -u origin feature/<n°>-<desc>
+# puis ouvrir la PR vers develop sur GitHub et demander une review
+```
+
+**Ordre des branches (semaine 1)** : installation des modules → CI/qualité → promotions (F4) → catalogue (F1) → fiche produit (F2) → panier (F3) → authentification (F5) → README → release v0.1.0. Une branche ne démarre que lorsque la précédente est mergée dans `develop` : la fiche produit réutilise des briques du catalogue (`RatingStars`, `utils/stock.ts`, le layout), et le store du panier appelle `computeCart` (F4).
 
 ## Répartition des rôles
 
