@@ -1,0 +1,138 @@
+import type { ComputedRef, Ref } from 'vue'
+import type { AuthTokens, LoginPayload, LoginResponse, User } from '~/types/dummyjson'
+import { authFetchWithRetry } from '~/utils/authFetch'
+import { getHttpStatus, isUnauthorized } from '~/utils/http'
+import { createSingleFlight } from '~/utils/singleFlight'
+
+/** Identifiants ou refresh token rejetés par l'API : la session n'est plus valide. */
+const SESSION_INVALID_STATUSES = new Set([400, 401, 403])
+
+const ACCESS_COOKIE = 'champashop_access_token'
+const REFRESH_COOKIE = 'champashop_refresh_token'
+const SEVEN_DAYS = 60 * 60 * 24 * 7
+
+export interface AuthFetchOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  body?: Record<string, unknown>
+}
+
+export interface AuthStore {
+  user: Ref<User | null>
+  isLoggedIn: ComputedRef<boolean>
+  /** Nombre d'appels réellement envoyés à /auth/refresh (pour vérifier le single-flight) */
+  refreshCount: Ref<number>
+  login: (username: string, password: string) => Promise<void>
+  logout: () => Promise<void>
+  fetchUser: () => Promise<void>
+  authFetch: <T>(path: string, options?: AuthFetchOptions) => Promise<T>
+}
+
+/**
+ * Store d'authentification (F5).
+ * - Tokens stockés en cookies → disponibles lors du rendu serveur.
+ * - L'utilisateur est chargé côté serveur (plugin auth) → pas de « flash » déconnecté.
+ * - `authFetch` rejoue les requêtes après un rafraîchissement « single-flight » du token.
+ */
+export const useAuthStore = defineStore('auth', (): AuthStore => {
+  const config = useRuntimeConfig().public
+  const cookieOptions = { maxAge: SEVEN_DAYS, sameSite: 'lax' as const, secure: !import.meta.dev }
+
+  const accessToken = useCookie<string | null>(ACCESS_COOKIE, { ...cookieOptions, default: () => null })
+  const refreshToken = useCookie<string | null>(REFRESH_COOKIE, { ...cookieOptions, default: () => null })
+
+  const user = ref<User | null>(null)
+  const refreshCount = ref(0)
+  const isLoggedIn = computed<boolean>(() => user.value !== null)
+
+  function clearSession(): void {
+    accessToken.value = null
+    refreshToken.value = null
+    user.value = null
+  }
+
+  /**
+   * Un seul POST /auth/refresh à la fois : les appels simultanés partagent la même promesse.
+   * La fonction est créée dans le store, donc une instance par requête côté serveur
+   * (pas de partage de token entre deux visiteurs).
+   */
+  const refreshTokens = createSingleFlight(async (): Promise<void> => {
+    if (!refreshToken.value) {
+      throw createError({ statusCode: 401, statusMessage: 'Session expirée' })
+    }
+    refreshCount.value++
+    try {
+      const tokens = await $fetch<AuthTokens>('/auth/refresh', {
+        baseURL: config.apiBase,
+        method: 'POST',
+        body: { refreshToken: refreshToken.value, expiresInMins: config.authExpiresInMins },
+      })
+      accessToken.value = tokens.accessToken
+      refreshToken.value = tokens.refreshToken
+    } catch (error) {
+      clearSession()
+      throw error
+    }
+  })
+
+  function request<T>(path: string, token: string | null, options: AuthFetchOptions): Promise<T> {
+    // Le $fetch de Nuxt type sa réponse d'après la route appelée ; pour une API externe
+    // à chemin variable, on indique explicitement que la réponse est de type T.
+    return $fetch<T>(path, {
+      baseURL: config.apiBase,
+      method: options.method ?? 'GET',
+      body: options.body,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }) as Promise<T>
+  }
+
+  /** Requête authentifiée : en cas de 401, rafraîchit le token (une seule fois) puis rejoue. */
+  function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promise<T> {
+    return authFetchWithRetry<T>({
+      getToken: () => accessToken.value,
+      hasRefreshToken: () => refreshToken.value !== null,
+      isUnauthorized,
+      refresh: refreshTokens,
+      request: (token) => request<T>(path, token, options),
+    })
+  }
+
+  async function fetchUser(): Promise<void> {
+    if (!accessToken.value && !refreshToken.value) {
+      user.value = null
+      return
+    }
+    try {
+      user.value = await authFetch<User>('/auth/me')
+    } catch (error) {
+      // Identifiants/refresh token rejetés (400/401/403) : on repart déconnecté.
+      // Une panne ou erreur serveur (5xx, réseau) ne doit pas vider une session valide.
+      const status = getHttpStatus(error)
+      if (status !== null && SESSION_INVALID_STATUSES.has(status)) {
+        clearSession()
+      }
+      user.value = null
+    }
+  }
+
+  async function login(username: string, password: string): Promise<void> {
+    const payload: LoginPayload = { username, password, expiresInMins: config.authExpiresInMins }
+    const response = await $fetch<LoginResponse>('/auth/login', {
+      baseURL: config.apiBase,
+      method: 'POST',
+      body: payload,
+    })
+    accessToken.value = response.accessToken
+    refreshToken.value = response.refreshToken
+    await fetchUser()
+    if (!user.value) {
+      throw createError({ statusCode: 502, statusMessage: 'Profil introuvable après connexion' })
+    }
+  }
+
+  async function logout(): Promise<void> {
+    clearSession()
+    await navigateTo('/')
+  }
+
+  return { user, isLoggedIn, refreshCount, login, logout, fetchUser, authFetch }
+})
