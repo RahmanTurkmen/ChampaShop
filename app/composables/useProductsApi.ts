@@ -9,6 +9,7 @@ import {
   sortProducts,
   type CatalogQuery,
 } from '~/utils/catalog'
+import { CART_PRODUCT_FIELDS, type CartProduct } from '~/utils/cart'
 
 export interface CatalogPage {
   products: ProductSummary[]
@@ -23,6 +24,7 @@ export interface ProductsApi {
   getCatalogPage: (state: CatalogQuery, signal?: AbortSignal) => Promise<CatalogPage>
   getCategories: (signal?: AbortSignal) => Promise<Category[]>
   getProduct: (id: number, signal?: AbortSignal) => Promise<Product>
+  getCartProduct: (id: number, signal?: AbortSignal) => Promise<CartProduct>
 }
 
 /**
@@ -104,5 +106,7 @@ export function useProductsApi(): ProductsApi {
     getCatalogPage,
     getCategories: (signal) => get<Category[]>('/products/categories', {}, signal),
     getProduct: (id, signal) => get<Product>(`/products/${id}`, {}, signal),
+    getCartProduct: (id, signal) =>
+      get<CartProduct>(`/products/${id}`, { select: CART_PRODUCT_FIELDS.join(',') }, signal),
   }
 }
