@@ -1,7 +1,11 @@
 import type { ComputedRef, Ref } from 'vue'
 import type { AuthTokens, LoginPayload, LoginResponse, User } from '~/types/dummyjson'
+import { authFetchWithRetry } from '~/utils/authFetch'
 import { getHttpStatus, isUnauthorized } from '~/utils/http'
 import { createSingleFlight } from '~/utils/singleFlight'
+
+/** Identifiants ou refresh token rejetés par l'API : la session n'est plus valide. */
+const SESSION_INVALID_STATUSES = new Set([400, 401, 403])
 
 const ACCESS_COOKIE = 'champashop_access_token'
 const REFRESH_COOKIE = 'champashop_refresh_token'
@@ -82,20 +86,14 @@ export const useAuthStore = defineStore('auth', (): AuthStore => {
   }
 
   /** Requête authentifiée : en cas de 401, rafraîchit le token (une seule fois) puis rejoue. */
-  async function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promise<T> {
-    const usedToken = accessToken.value
-    try {
-      return await request<T>(path, usedToken, options)
-    } catch (error) {
-      if (!isUnauthorized(error) || !refreshToken.value) {
-        throw error
-      }
-      // Si une autre requête a déjà obtenu un nouveau token, inutile de rafraîchir à nouveau
-      if (accessToken.value === usedToken) {
-        await refreshTokens()
-      }
-      return await request<T>(path, accessToken.value, options)
-    }
+  function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promise<T> {
+    return authFetchWithRetry<T>({
+      getToken: () => accessToken.value,
+      hasRefreshToken: () => refreshToken.value !== null,
+      isUnauthorized,
+      refresh: refreshTokens,
+      request: (token) => request<T>(path, token, options),
+    })
   }
 
   async function fetchUser(): Promise<void> {
@@ -106,8 +104,10 @@ export const useAuthStore = defineStore('auth', (): AuthStore => {
     try {
       user.value = await authFetch<User>('/auth/me')
     } catch (error) {
-      // Token invalide ou expiré sans refresh possible : on repart déconnecté
-      if (getHttpStatus(error) !== null) {
+      // Identifiants/refresh token rejetés (400/401/403) : on repart déconnecté.
+      // Une panne ou erreur serveur (5xx, réseau) ne doit pas vider une session valide.
+      const status = getHttpStatus(error)
+      if (status !== null && SESSION_INVALID_STATUSES.has(status)) {
         clearSession()
       }
       user.value = null
@@ -124,6 +124,9 @@ export const useAuthStore = defineStore('auth', (): AuthStore => {
     accessToken.value = response.accessToken
     refreshToken.value = response.refreshToken
     await fetchUser()
+    if (!user.value) {
+      throw createError({ statusCode: 502, statusMessage: 'Profil introuvable après connexion' })
+    }
   }
 
   async function logout(): Promise<void> {

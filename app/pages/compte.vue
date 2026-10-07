@@ -13,6 +13,9 @@ useSeoMeta({
 
 const auth = useAuthStore()
 
+/** Outil de démo réservé au développement (retiré du build de production). */
+const isDev = import.meta.dev
+
 const testing = ref<boolean>(false)
 const testResult = ref<string | null>(null)
 
@@ -58,7 +61,13 @@ async function testParallelRequests(): Promise<void> {
     <section class="account__section">
       <h2>Session</h2>
       <div class="account__actions">
-        <button type="button" class="btn btn--secondary" :disabled="testing" @click="testParallelRequests">
+        <button
+          v-if="isDev"
+          type="button"
+          class="btn btn--secondary"
+          :disabled="testing"
+          @click="testParallelRequests"
+        >
           Tester 3 requêtes simultanées
         </button>
         <button type="button" class="btn btn--danger" @click="auth.logout()">Se déconnecter</button>
