@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
 import { useCartStore } from '~/stores/cart'
 
 const cart = useCartStore()
+const auth = useAuthStore()
 
 const cartLabel = computed<string>(() => {
   const count = cart.itemCount
@@ -28,6 +30,10 @@ const cartLabel = computed<string>(() => {
                 </span>
               </NuxtLink>
             </li>
+            <li v-if="auth.isLoggedIn && auth.user">
+              <NuxtLink to="/compte">{{ auth.user.firstName }}</NuxtLink>
+            </li>
+            <li v-else><NuxtLink to="/connexion">Connexion</NuxtLink></li>
           </ul>
         </nav>
       </div>
