@@ -1,3 +1,14 @@
+<script setup lang="ts">
+import { useCartStore } from '~/stores/cart'
+
+const cart = useCartStore()
+
+const cartLabel = computed<string>(() => {
+  const count = cart.itemCount
+  return count === 0 ? 'Panier vide' : `Panier : ${count} article${count > 1 ? 's' : ''}`
+})
+</script>
+
 <template>
   <div class="layout">
     <a class="skip-link" href="#contenu">Aller au contenu</a>
@@ -9,6 +20,14 @@
         <nav aria-label="Navigation principale">
           <ul class="nav">
             <li><NuxtLink to="/produits">Catalogue</NuxtLink></li>
+            <li>
+              <NuxtLink to="/panier" :aria-label="cartLabel">
+                Panier
+                <span v-if="cart.itemCount > 0" class="nav__badge" aria-hidden="true">
+                  {{ cart.itemCount }}
+                </span>
+              </NuxtLink>
+            </li>
           </ul>
         </nav>
       </div>

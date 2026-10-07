@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useCartStore } from '~/stores/cart'
 import { getHttpStatus } from '~/utils/http'
 import { formatPrice } from '~/utils/money'
 import { discountBadge, stockStatus, type StockStatus } from '~/utils/stock'
 
 const route = useRoute()
 const api = useProductsApi()
+const cart = useCartStore()
 const { siteUrl } = useRuntimeConfig().public
 
 const productId = Number(route.params.id)
@@ -30,6 +32,18 @@ if (error.value || !product.value) {
 
 const stock = computed<StockStatus>(() => stockStatus(product.value?.stock ?? 0))
 const badge = computed<string | null>(() => discountBadge(product.value?.discountPercentage ?? 0))
+const inCart = computed<number>(() => cart.quantityOf(productId))
+// Limite connue : le stock utilisé ici est celui chargé avec la page. S'il baisse pendant que
+// la page reste ouverte, il n'est pas relu avant l'ajout. Il est revérifié au rechargement de /panier.
+const canAddMore = computed<boolean>(() => stock.value.available && inCart.value < (product.value?.stock ?? 0))
+const addMessage = ref<string | null>(null)
+
+function addToCart(): void {
+  const current = product.value
+  if (!current) return
+  cart.add(current)
+  addMessage.value = cart.notice
+}
 
 useSeoMeta({
   title: () => product.value?.title ?? 'Produit',
@@ -70,11 +84,17 @@ useSeoMeta({
         <p :class="['product__stock', `product__stock--${stock.level}`]">{{ stock.label }}</p>
 
         <div class="product__buy">
-          <!-- Branché sur le store du panier dans l'issue « Panier » -->
-          <button type="button" class="btn" :disabled="!stock.available">
+          <button type="button" class="btn" :disabled="!canAddMore" @click="addToCart">
             {{ stock.available ? 'Ajouter au panier' : 'Rupture de stock' }}
           </button>
+          <NuxtLink v-if="inCart > 0" to="/panier" class="btn btn--secondary">
+            Voir le panier ({{ inCart }})
+          </NuxtLink>
         </div>
+        <p v-if="stock.available && !canAddMore" class="muted">
+          Vous avez déjà tout le stock disponible dans votre panier.
+        </p>
+        <p class="product__notice" role="status" aria-live="polite">{{ addMessage }}</p>
 
         <h2>Description</h2>
         <p>{{ product.description }}</p>
