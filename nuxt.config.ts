@@ -25,6 +25,8 @@ export default defineNuxtConfig({
       apiBase: 'https://dummyjson.com',
       // URL publique du site, utilisée pour le sitemap et les balises Open Graph
       siteUrl: 'http://localhost:3000',
+      // Durée de vie du token d'accès. Mettre 1 (NUXT_PUBLIC_AUTH_EXPIRES_IN_MINS=1) pour tester le refresh.
+      authExpiresInMins: 30,
     },
   },
 
