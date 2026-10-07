@@ -33,6 +33,8 @@ if (error.value || !product.value) {
 const stock = computed<StockStatus>(() => stockStatus(product.value?.stock ?? 0))
 const badge = computed<string | null>(() => discountBadge(product.value?.discountPercentage ?? 0))
 const inCart = computed<number>(() => cart.quantityOf(productId))
+// Limite connue : le stock utilisé ici est celui chargé avec la page. S'il baisse pendant que
+// la page reste ouverte, il n'est pas relu avant l'ajout. Il est revérifié au rechargement de /panier.
 const canAddMore = computed<boolean>(() => stock.value.available && inCart.value < (product.value?.stock ?? 0))
 const addMessage = ref<string | null>(null)
 

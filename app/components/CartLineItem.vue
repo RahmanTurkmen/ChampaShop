@@ -15,6 +15,9 @@ const emit = defineEmits<{
 const inputId = computed<string>(() => `qty-${props.product.id}`)
 const lineTotal = computed<string>(() => formatCents(toCents(props.product.price) * props.quantity))
 
+// Les attributs min/max de l'input ne bloquent pas une saisie au clavier : la valeur est
+// envoyée telle quelle, et c'est le store (setQuantity → checkQuantity) qui la borne
+// entre 1 et le stock, avec un message pour l'utilisateur.
 function onChange(event: Event): void {
   const target = event.target
   if (target instanceof HTMLInputElement) {
