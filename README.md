@@ -2,7 +2,7 @@
 
 Vitrine en ligne de la boutique fictive **ChampaShop**, construite avec Nuxt 4, Vue 3 (`<script setup>`), TypeScript strict, Pinia et Vitest. Les données viennent de l'API [DummyJSON](https://dummyjson.com).
 
-- **Site en ligne** : _à compléter après le branchement Vercel/Netlify_
+- **Site en ligne** : https://champashop.vercel.app (branche `main`, mise à jour à chaque release)
 - **Version actuelle** : v0.1.0 (semaine 1)
 
 ## Sommaire
@@ -91,7 +91,7 @@ tests/unit/                  # Tests Vitest
 
 ### L'URL est la source de vérité (F1)
 
-Tout l'état du catalogue (`page`, `q`, `category`, `sortBy`, `order`, `minPrice`, `maxPrice`) est lu depuis `route.query` par `parseCatalogQuery` et réécrit par `toRouteQuery`. Rechargement, bouton retour et lien partagé donnent donc la même vue, rendue côté serveur. Le formulaire de filtres est un vrai `<form method="get">` : il fonctionne même sans JavaScript.
+Tout l'état du catalogue (`page`, `q`, `category`, `sortBy`, `order`, `minPrice`, `maxPrice`) est lu depuis `route.query` par `parseCatalogQuery` et réécrit par `toRouteQuery`. Rechargement, bouton retour et lien partagé donnent donc la même vue, rendue côté serveur. Le formulaire de filtres est un vrai `<form method="get">` : il fonctionne même sans JavaScript. Une page hors limites (`?page=999` alors qu'il n'y a que 3 pages, cas d'un lien obsolète) est redirigée vers la dernière page valide (`clampPage`).
 
 ### Une réponse ancienne n'écrase jamais une réponse récente
 
@@ -121,8 +121,8 @@ Le cookie `champashop_cart` ne contient que `[{ id, qty }]`, soit environ 20 oct
 ### Authentification (F5)
 
 - `accessToken` et `refreshToken` sont stockés en cookies. Le plugin `auth` appelle `GET /auth/me` pendant le rendu serveur, ce qui évite le « flash » de l'état déconnecté.
-- **Refresh single-flight** : `createSingleFlight` fait partager une même promesse à tous les appels simultanés. Si 3 requêtes reçoivent une 401, un seul `POST /auth/refresh` part, puis les 3 sont rejouées. La fonction est créée dans le store, donc une instance par requête côté serveur (pas de mélange entre visiteurs).
-- **Tester** : lancer `NUXT_PUBLIC_AUTH_EXPIRES_IN_MINS=1 npm run dev`, se connecter, attendre 1 minute, puis cliquer sur « Tester 3 requêtes simultanées » dans `/compte`. Le résultat affiche « 1 appel à /auth/refresh ».
+- **Refresh single-flight** : `createSingleFlight` fait partager une même promesse à tous les appels simultanés. Si 3 requêtes reçoivent une 401, un seul `POST /auth/refresh` part, puis les 3 sont rejouées. La fonction est créée dans le store, donc une instance par requête côté serveur (pas de mélange entre visiteurs). La logique « 401 → refresh → rejeu » est extraite dans `utils/authFetch.ts` (`authFetchWithRetry`) pour être testée sans Nuxt.
+- **Tester** : lancer `NUXT_PUBLIC_AUTH_EXPIRES_IN_MINS=1 npm run dev`, se connecter, attendre 1 minute, puis cliquer sur « Tester 3 requêtes simultanées » dans `/compte` (bouton affiché uniquement en mode développement). Le résultat affiche « 1 appel à /auth/refresh ».
 - Le paramètre `?redirect=` n'accepte que des chemins internes (`safeRedirectPath`) pour éviter les redirections ouvertes.
 
 ### Référencement
