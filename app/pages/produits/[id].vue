@@ -90,6 +90,7 @@ useSeoMeta({
           <NuxtLink v-if="inCart > 0" to="/panier" class="btn btn--secondary">
             Voir le panier ({{ inCart }})
           </NuxtLink>
+          <CompareToggle :product-id="product.id" :product-title="product.title" />
         </div>
         <p v-if="stock.available && !canAddMore" class="muted">
           Vous avez déjà tout le stock disponible dans votre panier.
