@@ -4,6 +4,7 @@
  * La sélection vient du cookie « compare » ou de l'URL (?ids=3,17,42) : son contenu est
  * `unknown` et peut avoir été modifié à la main. On ne garde que des identifiants valides.
  */
+import { isValidId, toId } from './ids'
 
 /** Nombre maximum de produits comparés */
 export const MAX_COMPARE = 3
@@ -12,29 +13,6 @@ export interface ToggleCompareResult {
   ids: number[]
   /** true si l'ajout a été refusé parce que le comparateur est plein */
   rejected: boolean
-}
-
-/** Identifiant de produit valide : entier strictement positif */
-function isValidId(value: number): boolean {
-  return Number.isSafeInteger(value) && value > 0
-}
-
-/**
- * Convertit une valeur en identifiant, ou null si elle n'en est pas un.
- * Les chaînes doivent ne contenir que des chiffres : "1.5", "3abc", "" ou "0x10" sont refusées
- * (Number("") vaut 0 et Number("0x10") vaut 16, d'où le test par expression régulière).
- */
-function toId(value: unknown): number | null {
-  if (typeof value === 'number') {
-    return isValidId(value) ? value : null
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!/^\d+$/.test(trimmed)) return null
-    const id = Number(trimmed)
-    return isValidId(id) ? id : null
-  }
-  return null
 }
 
 /**
