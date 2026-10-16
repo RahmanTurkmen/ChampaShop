@@ -28,6 +28,13 @@ export const useRecentlyViewedStore = defineStore('recentlyViewed', (): Recently
     sameSite: 'lax',
   })
 
+  // Un cookie corrompu ou modifié à la main (ex. "abc") est ignoré pour l'affichage, mais
+  // persisterait tel quel si on ne le réécrivait pas : on le normalise une fois ici.
+  const normalized = parseRecentlyViewedCookie(cookie.value)
+  if (JSON.stringify(cookie.value) !== JSON.stringify(normalized)) {
+    cookie.value = normalized
+  }
+
   const ids = computed<number[]>(() => parseRecentlyViewedCookie(cookie.value))
 
   function push(id: number): void {
