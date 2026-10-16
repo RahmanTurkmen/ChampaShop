@@ -4,8 +4,9 @@ import type {
   Product,
   ProductSummary,
   ProductsResponse,
+  RecentlyViewedProduct,
 } from '~/types/dummyjson'
-import { COMPARE_THUMBNAIL_FIELDS, PRODUCT_SUMMARY_FIELDS } from '~/types/dummyjson'
+import { COMPARE_THUMBNAIL_FIELDS, PRODUCT_SUMMARY_FIELDS, RECENTLY_VIEWED_FIELDS } from '~/types/dummyjson'
 import {
   PAGE_SIZE,
   filterProducts,
@@ -32,6 +33,7 @@ export interface ProductsApi {
   getProduct: (id: number, signal?: AbortSignal) => Promise<Product>
   getCartProduct: (id: number, signal?: AbortSignal) => Promise<CartProduct>
   getCompareThumbnail: (id: number, signal?: AbortSignal) => Promise<CompareThumbnail>
+  getRecentlyViewedProduct: (id: number, signal?: AbortSignal) => Promise<RecentlyViewedProduct>
 }
 
 /**
@@ -117,5 +119,7 @@ export function useProductsApi(): ProductsApi {
       get<CartProduct>(`/products/${id}`, { select: CART_PRODUCT_FIELDS.join(',') }, signal),
     getCompareThumbnail: (id, signal) =>
       get<CompareThumbnail>(`/products/${id}`, { select: COMPARE_THUMBNAIL_FIELDS.join(',') }, signal),
+    getRecentlyViewedProduct: (id, signal) =>
+      get<RecentlyViewedProduct>(`/products/${id}`, { select: RECENTLY_VIEWED_FIELDS.join(',') }, signal),
   }
 }

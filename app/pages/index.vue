@@ -33,6 +33,8 @@ const highlights = [
         </li>
       </ul>
     </section>
+
+    <RecentlyViewed />
   </div>
 </template>
 
