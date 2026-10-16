@@ -1,5 +1,11 @@
-import type { Category, Product, ProductSummary, ProductsResponse } from '~/types/dummyjson'
-import { PRODUCT_SUMMARY_FIELDS } from '~/types/dummyjson'
+import type {
+  Category,
+  CompareThumbnail,
+  Product,
+  ProductSummary,
+  ProductsResponse,
+} from '~/types/dummyjson'
+import { COMPARE_THUMBNAIL_FIELDS, PRODUCT_SUMMARY_FIELDS } from '~/types/dummyjson'
 import {
   PAGE_SIZE,
   filterProducts,
@@ -25,6 +31,7 @@ export interface ProductsApi {
   getCategories: (signal?: AbortSignal) => Promise<Category[]>
   getProduct: (id: number, signal?: AbortSignal) => Promise<Product>
   getCartProduct: (id: number, signal?: AbortSignal) => Promise<CartProduct>
+  getCompareThumbnail: (id: number, signal?: AbortSignal) => Promise<CompareThumbnail>
 }
 
 /**
@@ -108,5 +115,7 @@ export function useProductsApi(): ProductsApi {
     getProduct: (id, signal) => get<Product>(`/products/${id}`, {}, signal),
     getCartProduct: (id, signal) =>
       get<CartProduct>(`/products/${id}`, { select: CART_PRODUCT_FIELDS.join(',') }, signal),
+    getCompareThumbnail: (id, signal) =>
+      get<CompareThumbnail>(`/products/${id}`, { select: COMPARE_THUMBNAIL_FIELDS.join(',') }, signal),
   }
 }

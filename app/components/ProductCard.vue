@@ -23,6 +23,9 @@ const badge = computed<string | null>(() => discountBadge(props.product.discount
       <RatingStars :rating="product.rating" />
       <p class="product__price">{{ formatPrice(product.price) }}</p>
     </div>
+    <div class="product__actions">
+      <CompareToggle :product-id="product.id" :product-title="product.title" />
+    </div>
   </article>
 </template>
 
@@ -84,5 +87,14 @@ const badge = computed<string | null>(() => discountBadge(props.product.discount
   margin: 0;
   font-weight: 700;
   font-size: 1.1rem;
+}
+
+.product__actions {
+  display: flex;
+  padding: 0 12px 12px;
+}
+
+.product__actions .btn {
+  flex: 1;
 }
 </style>

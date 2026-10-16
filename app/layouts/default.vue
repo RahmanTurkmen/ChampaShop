@@ -43,6 +43,9 @@ const cartLabel = computed<string>(() => {
       <slot />
     </main>
 
+    <!-- Dans le layout : la sélection reste visible pendant toute la navigation -->
+    <CompareBar />
+
     <footer class="footer">
       <div class="container">
         <p class="muted">
