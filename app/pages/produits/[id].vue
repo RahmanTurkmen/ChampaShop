@@ -30,6 +30,9 @@ if (error.value || !product.value) {
   })
 }
 
+// Produit trouvé (jamais sur une 404 ci-dessus) : on l'ajoute à l'historique « vus récemment ».
+useRecentlyViewed().push(productId)
+
 const stock = computed<StockStatus>(() => stockStatus(product.value?.stock ?? 0))
 const badge = computed<string | null>(() => discountBadge(product.value?.discountPercentage ?? 0))
 const inCart = computed<number>(() => cart.quantityOf(productId))
@@ -135,6 +138,8 @@ useSeoMeta({
         </li>
       </ul>
     </section>
+
+    <RecentlyViewed :exclude-id="productId" />
   </div>
 </template>
 
