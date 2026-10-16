@@ -68,6 +68,11 @@ export const COMPARE_THUMBNAIL_FIELDS = ['title', 'thumbnail'] as const
 
 export type CompareThumbnail = Pick<Product, 'id' | (typeof COMPARE_THUMBNAIL_FIELDS)[number]>
 
+/** Champs demandés via `select` pour les cartes « vus récemment » (titre, prix, miniature). */
+export const RECENTLY_VIEWED_FIELDS = ['title', 'price', 'thumbnail'] as const
+
+export type RecentlyViewedProduct = Pick<Product, 'id' | (typeof RECENTLY_VIEWED_FIELDS)[number]>
+
 /** Réponse paginée de /products, /products/search et /products/category/:slug */
 export interface ProductsResponse<T = Product> {
   products: T[]
