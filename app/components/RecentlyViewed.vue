@@ -41,13 +41,20 @@ const { data: products } = await useAsyncData<RecentlyViewedProduct[]>(
   },
   { default: () => [], watch: [visibleIds] },
 )
+
+/** La section disparaît après un effacement : le focus suit le pattern de CompareBar.vue. */
+async function handleClear(): Promise<void> {
+  recentlyViewed.clear()
+  await nextTick()
+  document.getElementById('contenu')?.focus()
+}
 </script>
 
 <template>
   <section v-if="products && products.length > 0" class="recently-viewed" aria-labelledby="recently-viewed-title">
     <div class="recently-viewed__header">
       <h2 id="recently-viewed-title">Vus récemment</h2>
-      <button type="button" class="btn btn--secondary" @click="recentlyViewed.clear()">
+      <button type="button" class="btn btn--secondary" @click="handleClear">
         Effacer l'historique
       </button>
     </div>
