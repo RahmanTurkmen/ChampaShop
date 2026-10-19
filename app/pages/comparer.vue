@@ -178,12 +178,7 @@ async function copyLink(): Promise<void> {
         <button type="button" class="btn btn--secondary" @click="refresh()">Réessayer</button>
       </p>
 
-      <!-- Tableau comparatif : branche D (#22). En attendant, les produits sous forme de cartes. -->
-      <ul class="compare-page__list">
-        <li v-for="product in products" :key="product.id">
-          <ProductCard :product="product" />
-        </li>
-      </ul>
+      <CompareTable :products="products" />
     </template>
 
     <div v-else class="compare-page__empty">
@@ -243,15 +238,6 @@ async function copyLink(): Promise<void> {
   gap: 12px;
   flex-wrap: wrap;
   color: var(--color-danger);
-}
-
-.compare-page__list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
 }
 
 .compare-page__empty {
