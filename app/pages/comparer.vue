@@ -31,19 +31,31 @@ useSeoMeta({
 const requestedIds = computed<number[]>(() => parseCompareQuery(route.query.ids))
 
 /**
+ * Produits déjà chargés par cette page. Après une normalisation côté client (ex. :
+ * ?ids=1,999 réécrit en ?ids=1), useAsyncData relance le chargement pour la nouvelle URL :
+ * sans ce cache, le produit 1 serait redemandé à DummyJSON alors qu'on l'a déjà.
+ * Simple Map non réactive : elle n'a pas besoin d'être transmise du serveur au client.
+ */
+const loaded = new Map<number, Product>()
+
+/**
  * Chargement en parallèle (DummyJSON n'a pas d'appel multi-identifiants) avec
  * Promise.allSettled : l'échec d'un produit n'empêche pas l'affichage des autres.
  * Un produit inexistant (404) est marqué pour être retiré de l'URL ; une autre erreur
  * (réseau, 500) le garde dans l'URL avec un message, pour ne pas casser un lien partagé.
+ * Une erreur n'est pas mise en cache : « Réessayer » redemande bien le produit.
  */
 const { data: slots, refresh } = await useAsyncData<CompareSlot[]>(
   () => `compare:${requestedIds.value.join(',')}`,
   async (_nuxtApp, { signal }) => {
     const ids = requestedIds.value
-    const results = await Promise.allSettled(ids.map((id) => api.getProduct(id, signal)))
+    const results = await Promise.allSettled(
+      ids.map((id) => loaded.get(id) ?? api.getProduct(id, signal)),
+    )
     return results.map((result, index): CompareSlot => {
       const id = ids[index] ?? 0
       if (result.status === 'fulfilled') {
+        loaded.set(id, result.value)
         return { id, product: result.value, notFound: false }
       }
       return { id, product: null, notFound: getHttpStatus(result.reason) === 404 }
@@ -51,6 +63,12 @@ const { data: slots, refresh } = await useAsyncData<CompareSlot[]>(
   },
   { default: () => [], watch: [requestedIds] },
 )
+
+// Après l'hydratation, le handler n'a pas tourné côté client : on remplit le cache avec
+// les produits reçus du serveur.
+for (const slot of slots.value) {
+  if (slot.product) loaded.set(slot.id, slot.product)
+}
 
 /** Produits de l'URL qui existent (chargés ou en échec temporaire), dans l'ordre de l'URL */
 const validIds = computed<number[]>(() =>
@@ -74,6 +92,11 @@ async function normalizeUrl(): Promise<void> {
   await navigateTo({ path: '/comparer', query: ids ? { ids } : {} }, { replace: true })
 }
 
+// Deux appels, pour deux moments différents :
+// - ici, au premier rendu (serveur, ou client lors d'une navigation) : une URL invalide est
+//   réécrite avant l'affichage, en redirection côté serveur (marche sans JavaScript) ;
+// - via le watch, quand l'URL change ensuite sur la même page (lien interne, « Réessayer ») et
+//   que le nouveau chargement révèle un produit inexistant à retirer.
 await normalizeUrl()
 watch(slots, normalizeUrl)
 
@@ -86,9 +109,15 @@ const selectionDiffers = computed<boolean>(
 )
 const replaceMessage = ref<string>('')
 
-function replaceSelection(): void {
+/**
+ * Après le remplacement, cookie et URL sont identiques : le bandeau, et donc le bouton qui
+ * avait le focus, disparaît. On replace le focus sur le contenu (pattern de CompareBar.vue).
+ */
+async function replaceSelection(): Promise<void> {
   compare.replace(validIds.value)
   replaceMessage.value = 'Votre sélection a été remplacée par celle de ce lien.'
+  await nextTick()
+  document.getElementById('contenu')?.focus()
 }
 
 /** Copie du lien : Clipboard API si disponible, sinon champ texte sélectionné à copier à la main */
