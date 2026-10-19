@@ -66,3 +66,39 @@ export function toggleCompare(ids: number[], id: number, max = MAX_COMPARE): Tog
 export function compareLink(ids: number[]): string {
   return `/comparer?ids=${ids.join(',')}`
 }
+
+/**
+ * Lit `route.query.ids` de la page /comparer : "3,17,42", ou plusieurs paramètres
+ * (?ids=3,17&ids=42 donne un tableau), ou absent. Les morceaux sont réunis puis validés
+ * comme une seule liste, avec les mêmes règles que le cookie.
+ */
+export function parseCompareQuery(raw: unknown, max = MAX_COMPARE): number[] {
+  if (Array.isArray(raw)) {
+    const parts = raw.filter((part): part is string => typeof part === 'string')
+    return parseCompareIds(parts.join(','), max)
+  }
+  return parseCompareIds(raw, max)
+}
+
+/** Valeur canonique du paramètre `ids` : "3,17,42", ou undefined (paramètre absent) si vide */
+export function canonicalCompareQuery(ids: number[]): string | undefined {
+  return ids.length > 0 ? ids.join(',') : undefined
+}
+
+/**
+ * true si l'URL doit être réécrite : elle contient des identifiants ignorés (invalides,
+ * doublons, au-delà du maximum, inexistants) ou n'est pas écrite sous la forme "3,17,42".
+ */
+export function compareQueryNeedsNormalization(raw: unknown, ids: number[]): boolean {
+  const canonical = canonicalCompareQuery(ids)
+  if (canonical === undefined) return raw !== undefined
+  return raw !== canonical
+}
+
+/**
+ * Même sélection, quel que soit l'ordre ? (cookie du visiteur et URL d'un lien partagé)
+ * L'ordre n'est qu'un choix d'affichage : on ne propose pas de remplacer pour si peu.
+ */
+export function sameCompareSelection(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id))
+}
